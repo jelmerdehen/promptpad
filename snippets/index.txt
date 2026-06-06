@@ -1,0 +1,10 @@
+0: Plan review (steelman/attack/tradeoffs/revise)
+1: Plan refine (investigate hard)
+2: Prompt refine
+3: /loop bugfix + commit/push
+4: Context gathering
+5: Post-build review (works/missed/better)
+6: Context gathering (terse)
+7: /loop stage executor
+8: Root-cause debug
+9: Adversarial pushback

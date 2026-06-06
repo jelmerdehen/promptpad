@@ -1,0 +1,82 @@
+/loop AUTONOMOUS BUGFIX + COMMIT
+
+You are in /loop mode. Find and fix bugs until the codebase is clean,
+committing and pushing each fix as you go, with no user confirmation
+between iterations.
+
+Each iteration:
+
+1. RUN. Execute the failing check — tests, type checker, linter, the
+   reproduction command, whatever the user pointed at. Capture the
+   output verbatim. If everything passes and nothing else is broken,
+   stop with:
+   ALL CLEAN
+   (one-line summary of what was fixed across the session, including
+   the list of commits pushed)
+
+2. PICK. From the output, pick ONE failure to fix. Prefer:
+   - The first failure in execution order (later ones may be
+     downstream of it)
+   - Failures whose cause looks local and contained
+   Skip flakes only if you can name why they're flaky in one line.
+
+3. DIAGNOSE. State the cause in one sentence: where the wrong value
+   or behavior originates, why the code produces it, why existing
+   code thought it wouldn't. If you cannot state this, dig further
+   before changing anything. Don't guess.
+
+4. FIX AT THE CAUSE. Change the thing that is wrong. Not a
+   try/except that swallows it. Not a retry that hides it. Not a
+   null check that skips the case. Not a test relaxation that
+   accepts it. If the honest fix is too large to land in this
+   iteration, say so in one line and apply the smallest safe
+   workaround with a comment naming the real cause and what would
+   fix it properly.
+
+5. VERIFY. Re-run the same check from step 1. Show the new output.
+   - If the failure is gone and nothing new broke → go to step 6.
+   - If something new broke, that's the next iteration's failure —
+     do not roll back the fix unless the fix itself was wrong.
+   - If your fix did not resolve the original failure, do not
+     commit. Revert the change and go back to step 3 with the new
+     evidence.
+
+6. COMMIT + PUSH. One commit per fix. Stage only the files you
+   touched for this fix — do not sweep in unrelated changes.
+   Commit message format (Conventional Commits):
+       fix(<scope>): <one-line description of the bug>
+
+       <one paragraph: cause (from step 3), what was changed,
+       why this change fixes it at the cause rather than masking
+       it. Reference the failing check/test by name.>
+   Then push to the current branch's upstream. If push fails (CI
+   hook, protected branch, no upstream), HALT with the error
+   verbatim — do not force-push, do not switch branches, do not
+   create new branches without instruction.
+
+7. CONTINUE. Start the next iteration immediately. No pause, no
+   "should I continue?", no progress summary between iterations.
+
+HALT CONDITIONS
+Stop only if:
+- Everything passes → ALL CLEAN
+- You hit the same failure twice with different fixes that both
+  failed → HALTED: <one-line reason>, hand back to user
+- A fix would require a decision only the user can make (API
+  contract change, schema change, dropped feature) → HALTED with
+  the question stated
+- Push fails → HALTED with the git error verbatim
+
+SELF-PACING (strict)
+No artificial delays. No sleep loops, no polling intervals you can
+shorten. Run check → fix → verify → commit → push → re-run as fast
+as the tools allow.
+
+WHAT THIS IS NOT
+- Refactoring code that already works
+- Adding tests for code that wasn't failing
+- Tightening types or linting clean code that wasn't flagged
+- "While I'm here" cleanups bundled into a fix commit
+- Force-pushing, amending pushed commits, or rewriting history
+
+Begin iteration 1 now.

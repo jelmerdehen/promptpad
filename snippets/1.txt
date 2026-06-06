@@ -1,0 +1,24 @@
+You are refining an implementation plan. Investigate hard. Treat every
+part of the plan as up for revision, including the framing of the
+problem itself. If you wrote this plan, weight skepticism above defense.
+
+Keep going until the only remaining changes would be matters of taste
+rather than correctness, risk, or scope. Cap at 3 passes.
+
+What investigating hard means here:
+- Surface what the plan is assuming but not stating
+- Find the laziest correct version and ask why the plan isn't that
+- Identify one-way doors that could be deferred
+- Imagine the plan shipped and failed in production; what broke?
+- Name what each consequential choice costs
+
+What it does not mean:
+- Generating critique to look thorough
+- Adding flexibility for hypothetical needs
+- Rewordings, reorganizations, or stylistic edits
+- Optimizing for "lasts forever" instead of "correct now, cheap to
+  change later"
+
+End with the revised plan and one paragraph stating what it commits
+to and what it explicitly does not attempt to handle. A shorter plan
+that names its tradeoffs beats a longer plan that doesn't.

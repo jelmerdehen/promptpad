@@ -1,0 +1,174 @@
+#!/bin/bash
+# promptpad — numpad-triggered prompt snippets with usage tracking.
+set -uo pipefail
+
+HERE=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+SNIPPET_DIR=${PROMPTPAD_SNIPPETS:-$HERE/snippets}
+INDEX_FILE=$SNIPPET_DIR/index.txt
+
+# shellcheck source=../lib/db.sh
+. "$HERE/lib/db.sh"
+
+die() { echo "promptpad: $*" >&2; exit 1; }
+
+require_slot() {
+    [[ ${1:-} =~ ^[0-9]$ ]] || die "slot must be 0-9, got: ${1:-<empty>}"
+}
+
+snippet_path() {
+    echo "$SNIPPET_DIR/$1.txt"
+}
+
+snippet_title() {
+    local slot=$1
+    if [ -f "$INDEX_FILE" ]; then
+        local line
+        line=$(grep -E "^$slot:" "$INDEX_FILE" | head -1)
+        echo "${line#$slot: }"
+    fi
+}
+
+set_title() {
+    local slot=$1 title=$2
+    touch "$INDEX_FILE"
+    if grep -qE "^$slot:" "$INDEX_FILE"; then
+        sed -i "s|^$slot:.*|$slot: $title|" "$INDEX_FILE"
+    else
+        printf '%s: %s\n' "$slot" "$title" >> "$INDEX_FILE"
+        sort -o "$INDEX_FILE" "$INDEX_FILE"
+    fi
+}
+
+paste_snippet() {
+    local slot=$1
+    local file
+    file=$(snippet_path "$slot")
+    [ -f "$file" ] || { notify-send "promptpad" "Missing: $file"; exit 1; }
+
+    local content prev_clip prev_primary hash
+    content=$(cat "$file")
+    hash=$(sha256sum "$file" | cut -c1-12)
+    prev_clip=$(xclip -selection clipboard -o 2>/dev/null || true)
+    prev_primary=$(xclip -selection primary -o 2>/dev/null || true)
+
+    printf '%s' "$content" | xclip -selection clipboard
+    printf '%s' "$content" | xclip -selection primary
+
+    sleep 0.05
+    xdotool key --clearmodifiers shift+Insert
+
+    # Fix: user still holds Super after Mod4+KP_N press; tell X to forget it
+    # so a follow-up Enter doesn't fire $mod+Return (terminal in i3).
+    xdotool keyup Super_L Super_R
+
+    db_log_use "$slot" "$hash"
+
+    (sleep 1 \
+        && printf '%s' "$prev_clip" | xclip -selection clipboard \
+        && printf '%s' "$prev_primary" | xclip -selection primary) &
+}
+
+cmd_list() {
+    db_init
+    local fmt="%-4s %-7s %-21s %s\n"
+    # shellcheck disable=SC2059
+    printf "$fmt" "SLOT" "COUNT" "LAST USED" "TITLE"
+    # shellcheck disable=SC2059
+    printf "$fmt" "----" "-----" "---------" "-----"
+    for n in 0 1 2 3 4 5 6 7 8 9; do
+        # shellcheck disable=SC2059
+        printf "$fmt" "$n" "$(db_count "$n")" "$(db_last "$n")" "$(snippet_title "$n")"
+    done
+}
+
+cmd_stats() {
+    db_init
+    echo "Sorted by use count (low first — ditch candidates on top):"
+    echo
+    local fmt="%-4s %-7s %-21s %s\n"
+    # shellcheck disable=SC2059
+    printf "$fmt" "SLOT" "COUNT" "LAST USED" "TITLE"
+    # shellcheck disable=SC2059
+    printf "$fmt" "----" "-----" "---------" "-----"
+    for n in 0 1 2 3 4 5 6 7 8 9; do
+        printf "%s\t%s\t%s\t%s\n" \
+            "$(db_count "$n")" "$n" "$(db_last "$n")" "$(snippet_title "$n")"
+    done | sort -n | while IFS=$'\t' read -r count slot last title; do
+        # shellcheck disable=SC2059
+        printf "$fmt" "$slot" "$count" "$last" "$title"
+    done
+}
+
+cmd_edit() {
+    require_slot "${1:-}"
+    "${EDITOR:-vi}" "$(snippet_path "$1")"
+}
+
+cmd_show() {
+    require_slot "${1:-}"
+    cat "$(snippet_path "$1")"
+}
+
+cmd_use() {
+    require_slot "${1:-}"
+    paste_snippet "$1"
+}
+
+cmd_title() {
+    require_slot "${1:-}"
+    [ -n "${2:-}" ] || die "title required"
+    set_title "$1" "$2"
+}
+
+cmd_reset() {
+    if [ -n "${1:-}" ]; then
+        require_slot "$1"
+        db_reset "$1"
+        echo "reset slot $1"
+    else
+        db_reset
+        echo "reset all slots"
+    fi
+}
+
+cmd_path() {
+    echo "$SNIPPET_DIR"
+    echo "db: $PROMPTPAD_DB"
+}
+
+cmd_help() {
+    cat <<EOF
+promptpad — numpad prompt snippets with usage tracking
+
+Usage: promptpad <command> [args]
+
+  list              show all slots: count, last-used, title
+  stats             same as list but sorted by count ascending
+  use N             paste snippet N (logs to db, fixes Super mod-state)
+  show N            print snippet N to stdout
+  edit N            open snippet N in \$EDITOR
+  title N "..."     set title for slot N in index.txt
+  reset [N]         zero usage counters (all, or one slot)
+  path              print snippet dir + db path
+  help              this message
+EOF
+}
+
+main() {
+    local cmd=${1:-help}
+    shift || true
+    case "$cmd" in
+        list)  cmd_list ;;
+        stats) cmd_stats ;;
+        use)   cmd_use "$@" ;;
+        show)  cmd_show "$@" ;;
+        edit)  cmd_edit "$@" ;;
+        title) cmd_title "$@" ;;
+        reset) cmd_reset "$@" ;;
+        path)  cmd_path ;;
+        help|-h|--help) cmd_help ;;
+        *)     die "unknown command: $cmd (try: help)" ;;
+    esac
+}
+
+main "$@"

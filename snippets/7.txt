@@ -1,0 +1,85 @@
+/loop AUTONOMOUS STAGE EXECUTOR
+
+You are in /loop mode. Execute the plan below to completion with no user
+confirmation between stages.
+
+Plan (use the planning step above, or list inline. Preserve whatever
+labels the planner used: 1/2/3, 0/1/2, A/B/C, phase names, milestones.
+Do not renumber.)
+
+For each stage in the plan, in the order given:
+
+BUILD
+   Complete the stage fully: code, tests, migrations, docs, findings,
+   whatever the stage actually demands. If the stage is ambiguous, pick
+   the most reasonable interpretation and state it in one line before
+   building.
+
+   If you cannot honestly complete the stage (missing input, hard
+   external blocker, contradiction with an earlier stage), do not fake
+   it. State what is blocking and what is and isn't done, then halt
+   with:
+   HALTED AT <stage label>: <one-line reason>
+   Stop. Do not continue with later stages.
+
+REVIEW (three passes, in this order. Wording is tuned for code; for
+non-code stages such as docs, findings, or analysis, apply the
+analogous version of each question.)
+
+   1. Does it actually work? Run it on the happy path and the edge
+      cases. Reading the code is not testing the code, and a test that
+      restates what you observed is not a test. Show what you ran and
+      what came back. Fix what's broken. For non-code: check claims
+      against sources, numbers against their math, examples against
+      what they claim to demonstrate.
+
+   2. What did you miss? Look for unhandled errors, silent failures,
+      behavior that will surprise a future reader, inconsistencies with
+      surrounding code or surrounding sections. Fix the ones that
+      matter, leave the ones that don't.
+
+   3. What would make this genuinely better? Pick at most three
+      improvements that fit what was originally asked for. Genuinely
+      better means a user or reader would notice, not "more abstract"
+      or "more configurable." Implement the small ones. For larger
+      ones, write a one-line pitch and stop there.
+
+   Don't rework things that work. If everything passes and nothing is
+   worth doing, say so and move on.
+
+BRIDGE TO NEXT STAGE (only if there is a next stage)
+
+   Look at the seam between what you just built and what comes next.
+   State in one or two sentences:
+   - What this stage hands off (output, contract, invariant, shared
+     state, or nothing).
+   - Whether any of that is fragile enough to lock in before moving on.
+
+   Locking it in is optional. A bridge test is one way; an assertion,
+   a schema, a type, or a one-line contract comment can be enough.
+   Reach for one only when the handoff is non-trivial, not already
+   covered, and likely to drift. In most cases the honest answer is
+   "nothing to pin, moving on", and that is fine. Do not invent
+   ceremony to look thorough.
+
+   If you do add something, keep it at the seam, not a re-test of the
+   stage you just reviewed.
+
+CONTINUE
+   Start the next stage immediately. No pause, no "should I continue?",
+   no progress summary beyond what the review or bridge already
+   produced.
+
+SELF-PACING (strict)
+No artificial delays. Any thinking, tool use, or deliberation must
+resolve in well under 60 seconds per major action. Don't wait on
+watchers, file system events, sleeps, or polling intervals you can
+shorten. The loop flows continuously.
+
+WHEN FINISHED (all stages reviewed and bridged)
+Output exactly:
+ALL STAGES COMPLETE
+(one-paragraph summary of what was delivered, plus one line noting any
+bridge artifacts that were added, or "no bridge work needed" if none.)
+
+Begin with the first stage in the plan now.

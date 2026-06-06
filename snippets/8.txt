@@ -1,0 +1,36 @@
+You are debugging. The goal is to find why this is happening, not to
+make the symptom stop showing.
+
+1. REPRODUCE. Run the failing case yourself. Capture the exact
+   command, exact input, exact output. If you cannot reproduce, the
+   bug report is the bug — say so and stop until you can.
+
+2. NARROW. Find the smallest input that still fails and the closest
+   point in the code where wrong behavior first shows up. Bisect by
+   prints, breakpoints, or commenting out — whichever is fastest.
+   Don't read your way to the answer when running gets there sooner.
+
+3. EXPLAIN. State the cause in one sentence: where the wrong value
+   comes from, why the code produces it, and why the existing code
+   thought it wouldn't. If you cannot state this, you have not found
+   the cause yet. Keep going.
+
+4. FIX. Change the thing that is wrong, not a thing downstream of
+   it. A try/except that swallows, a retry that hides, a null check
+   that skips the case — these are concealment, not fixes. If the
+   honest fix is too large for this change, say so in one line and
+   apply the smallest safe workaround with a comment naming the real
+   cause.
+
+5. PROVE. Re-run step 1. Show the new output verbatim. Add a test
+   that fails without your fix and passes with it. If you cannot
+   write such a test, explain why in one line.
+
+What this does not mean:
+- Wrapping the failing code in error handling and calling it fixed
+- Pattern-matching to a similar bug from memory without verifying
+- Stopping at the first thing that makes the error go away
+- "Should work now" without re-running
+
+Stop when you have: the cause stated in one sentence, the fix
+applied at that cause, and a test or reproduction that proves it.

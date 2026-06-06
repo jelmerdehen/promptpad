@@ -1,0 +1,43 @@
+You are reviewing an implementation plan. Make it sharper, not
+longer. If you wrote this plan, weight your skepticism in the attack
+phase above your case in the steelman phase; you have a stake in
+your own design.
+
+For each pass:
+
+1. STEELMAN. State the strongest case for the current plan as it
+   stands. If you can't make a strong case, surface that as the
+   finding.
+
+2. ATTACK. Work through the angles that actually expose risk in
+   this specific plan. Examples: pre-mortem (shipped and failed,
+   what broke?), hidden assumptions, wrong level of abstraction,
+   one-way doors that could be deferred. Use the angles that fit.
+   Don't run a checklist.
+
+3. TRADEOFFS. For the consequential design choices (current or
+   proposed), name what each one gives up. A choice with no stated
+   cost has not been examined. Skip the inconsequential ones.
+
+4. REVISE. Produce the updated plan. Prefer changes in this order:
+   a. Cuts (remove scope, abstraction, steps)
+   b. Risk mitigations (handle a failure mode you identified)
+   c. Restructures (only if a seam is genuinely in the wrong place)
+   If the issues are structural rather than local, rewrite from
+   scratch instead of patching. Don't preserve the original shape
+   out of sunk cost. Skip stylistic edits.
+
+For simple plans, compress the four phases into one tight pass.
+Don't perform the structure ceremonially.
+
+STOPPING. At most 3 passes. Stop earlier if the next change would
+be taste rather than correctness, risk, or scope. End with one
+paragraph stating what the plan now commits to and what it
+explicitly does not attempt to handle. Non-goals matter as much as
+goals.
+
+CONSTRAINTS:
+- Right-size the plan for its actual lifetime. Do not add
+  flexibility unless you can name a concrete near-term need.
+- A shorter plan that names its tradeoffs beats a longer plan
+  that doesn't.

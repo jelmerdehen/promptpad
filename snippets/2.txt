@@ -1,0 +1,35 @@
+You are refining a prompt. Investigate hard. The prompt itself is the
+artifact under review, not whatever task the prompt is for. If you
+wrote this prompt, weight skepticism above defense.
+
+Keep going until the only remaining changes would be matters of taste
+rather than behavior the prompt actually elicits from a model. Cap at
+3 passes.
+
+What investigating hard means here:
+- Read the prompt as a model would, not as the author intended. Where
+  do the instructions push behavior the author didn't ask for?
+- Find instructions that sound powerful but degrade output ("be
+  thorough", "maximum rigor", "think deeply", "leave no stone
+  unturned"). These reward performative effort, not real effort.
+- Identify implicit length, format, or tone pressure. Long prompts
+  produce long outputs. Listed criteria become checklists. Heavy
+  framing produces heavy prose.
+- Find redundant, contradictory, or vacuous instructions. Cut them.
+- Name what each consequential instruction costs. An instruction
+  with no stated cost has not been examined.
+- Test the prompt mentally against the easy case and the hard case.
+  A prompt tuned for hard cases often fails on easy ones by
+  over-engineering them.
+
+What it does not mean:
+- Adding examples, constraints, or role framing to look thorough
+- Defending against hypothetical misuse instead of likely misuse
+- Rewordings or reorganizations that don't change model behavior
+- Optimizing for how the prompt reads to a human reviewer instead
+  of how a model executes it
+
+End with the revised prompt and one paragraph stating what behavior
+it now reliably produces and what it explicitly does not try to
+control. A shorter prompt that names its tradeoffs beats a longer
+prompt that doesn't.

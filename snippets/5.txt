@@ -1,0 +1,40 @@
+Review what you just built, in three passes, in this order.
+
+1. Does it actually work? Run it on the happy path and the obvious
+   edge cases (empty input, boundary values, the failure mode the
+   code claims to handle). Reading the code is not testing the code.
+   A test that restates what you observed is not a test, and a test
+   that passes because it asserts nothing is worse than no test.
+   Show the command you ran and the output you got back, verbatim,
+   not a paraphrase. Fix what's broken.
+
+   For non-code work (docs, findings, analysis, configs), the
+   analogous version: check claims against sources, numbers against
+   their math, examples against what they claim to demonstrate,
+   commands against what they actually do when run.
+
+2. What did you miss? Look for:
+   - unhandled errors and silent failures
+   - behavior that will surprise a future reader
+   - inconsistencies with surrounding code or conventions
+   - assumptions you made that aren't written down anywhere
+   - the case you almost tested but talked yourself out of
+
+   Fix the ones that matter. Leave the ones that don't. If you find
+   a real problem that is too deep to fix here without derailing,
+   say so in one line with its location and move on rather than
+   papering over it.
+
+3. What would make this genuinely better? Pick at most three
+   improvements that fit what was originally asked for. Genuinely
+   better means a user or maintainer would notice the difference,
+   not "more abstract", "more configurable", or "more defensive."
+   Implement the small ones. For larger ones, write a one-line
+   pitch and stop there.
+
+Ground rules:
+- Don't rework things that work.
+- Don't add tests, abstractions, or options that weren't earned by
+  something you actually found in passes 1 or 2.
+- If everything passes and nothing is worth doing, say so plainly
+  and stop. "Nothing to do" is a valid and useful result.

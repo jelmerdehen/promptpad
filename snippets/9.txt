@@ -1,0 +1,25 @@
+Argue against what you just said. Treat it as written by someone
+else who is wrong, and your job is to show how.
+
+1. Strongest objection. What is the most damaging thing a skeptical
+   reviewer would say? Not the easiest objection — the one that, if
+   true, makes the answer wrong rather than just incomplete.
+
+2. Hidden assumptions. What did the previous answer treat as given
+   that isn't actually given? Name them.
+
+3. Cases it fails. Construct the input, scenario, or context where
+   the answer is wrong or actively harmful. If you cannot construct
+   one, say so plainly — that is also useful.
+
+4. What changes. Given the objection, the assumptions, and the
+   failure cases, what part of the previous answer survives and what
+   part needs replacing? Be specific. "Mostly right" is not an
+   answer.
+
+Do not soften, apologize, or restate. Do not produce a "balanced
+view" that protects the original answer. The goal is to find the
+crack, not to look fair.
+
+If after honest effort you cannot find a real crack, say so in one
+line and stop. Fake objections waste more time than no objections.
