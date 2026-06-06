@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/jelmer/promptpad/internal/db"
 	"github.com/jelmer/promptpad/internal/paste"
@@ -19,6 +21,7 @@ Usage: promptpad <command> [args]
   list              show all slots: count, last-used, title
   stats             same as list but sorted by count ascending
   use N             paste snippet N (logs to db, fixes Super mod-state)
+  pick              rofi/dmenu picker → copy snippet to clipboard (no paste)
   show N            print snippet N to stdout
   edit N            open snippet N in $EDITOR
   title N "..."     set title for slot N in index.txt
@@ -42,6 +45,8 @@ func main() {
 		err = cmdStats(store)
 	case "use":
 		err = cmdUse(store, args)
+	case "pick":
+		err = cmdPick(store)
 	case "show":
 		err = cmdShow(store, args)
 	case "edit":
@@ -151,6 +156,63 @@ func cmdUse(s snippets.Store, args []string) error {
 	}
 	defer d.Close()
 	return d.Log(n, s.Hash(n))
+}
+
+func cmdPick(s snippets.Store) error {
+	d, err := openDB()
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	titles := s.Titles()
+
+	var menu bytes.Buffer
+	for n := 0; n <= 9; n++ {
+		st, _ := d.Stat(n)
+		title := titles[n]
+		if title == "" {
+			title = "(empty)"
+		}
+		fmt.Fprintf(&menu, "%d  [%d]  %s\n", n, st.Count, title)
+	}
+
+	picker, args := pickerCmd()
+	cmd := exec.Command(picker, args...)
+	cmd.Stdin = &menu
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		// User cancelled (Esc) — no-op, no error message.
+		_ = paste.ReleaseSuper()
+		return nil
+	}
+	sel := strings.TrimSpace(string(out))
+	if sel == "" {
+		return nil
+	}
+	n, err := strconv.Atoi(strings.Fields(sel)[0])
+	if err != nil || n < 0 || n > 9 {
+		return fmt.Errorf("bad picker output: %q", sel)
+	}
+	content, err := s.Read(n)
+	if err != nil {
+		return err
+	}
+	if err := paste.Copy(content); err != nil {
+		return err
+	}
+	_ = paste.ReleaseSuper()
+	_ = exec.Command("notify-send", "-t", "1500", "promptpad",
+		fmt.Sprintf("Copied #%d: %s", n, titles[n])).Run()
+	return d.Log(n, s.Hash(n))
+}
+
+func pickerCmd() (string, []string) {
+	if _, err := exec.LookPath("rofi"); err == nil {
+		return "rofi", []string{"-dmenu", "-i", "-p", "promptpad",
+			"-theme-str", "window { width: 50%; } listview { lines: 10; }"}
+	}
+	return "dmenu", []string{"-i", "-p", "promptpad", "-l", "10"}
 }
 
 func cmdShow(s snippets.Store, args []string) error {

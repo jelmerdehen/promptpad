@@ -28,6 +28,8 @@ bindcode Mod4+85 $exec promptpad use 6
 bindcode Mod4+79 $exec promptpad use 7
 bindcode Mod4+80 $exec promptpad use 8
 bindcode Mod4+81 $exec promptpad use 9
+# KP_Decimal (91): rofi picker → snippet to clipboard, no auto-paste
+bindcode Mod4+91 $exec promptpad pick
 ```
 
 ## CLI
