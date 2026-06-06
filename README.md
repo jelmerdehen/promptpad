@@ -5,12 +5,15 @@ Numpad-triggered prompt snippets with usage tracking.
 Bind `Super+KP_0..9` in your WM to `promptpad use N`. Each use is logged to
 SQLite so you can see which slots are dead weight and reclaim them.
 
-## Install
+## Build & install
 
 ```
-git clone … /data/p/promptpad
+go build -trimpath -ldflags='-s -w' -o bin/promptpad ./cmd/promptpad
 ln -s /data/p/promptpad/bin/promptpad ~/.local/bin/promptpad
 ```
+
+Single static binary. Pure-Go SQLite (`modernc.org/sqlite`), no cgo.
+Runtime deps: `xdotool`, `xclip`, `notify-send` (X side, exec'd).
 
 i3 binding (KP_* keysyms suppressed by Mod, so use bindcode):
 
@@ -43,11 +46,14 @@ promptpad show N           # cat snippet N
 ## Layout
 
 ```
+cmd/promptpad/             # main package
+internal/db/               # SQLite (modernc.org/sqlite)
+internal/snippets/         # snippet files + index.txt
+internal/paste/            # xdotool/xclip orchestration
 snippets/
-  0.txt … 9.txt    # one file per slot
-  index.txt        # "N: title" lines, one per slot
-bin/promptpad      # CLI
-lib/db.sh          # sqlite helpers
+  0.txt … 9.txt            # one file per slot
+  index.txt                # "N: title" lines, one per slot
+bin/promptpad              # built binary
 ```
 
 DB at `~/.local/share/promptpad/usage.db`. Schema:
