@@ -38,6 +38,7 @@ bindcode Mod4+91 $exec promptpad pick
 promptpad list             # all slots: title, count, last-used
 promptpad stats            # sorted by use count (ascending — easy ditch candidates)
 promptpad use N            # paste snippet N, log to db
+promptpad pick             # rofi/dmenu picker → copy snippet to clipboard
 promptpad edit N           # open snippet N in $EDITOR
 promptpad title N "..."    # set/replace title in index.txt
 promptpad reset [N]        # zero counters (all, or one slot)
