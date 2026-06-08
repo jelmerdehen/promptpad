@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"sort"
@@ -27,7 +28,14 @@ Usage: promptpad <command> [args]
   title N "..."     set title for slot N in index.txt
   reset [N]         zero usage counters (all, or one slot)
   path              print snippet dir + db path
+  doctor            check deps + show active window + paste key
   help              this message
+
+Env:
+  PROMPTPAD_KEY        paste keysequence (default: shift+Insert)
+                       e.g. ctrl+shift+v for some modern terminals
+  PROMPTPAD_SNIPPETS   override snippet dir
+  PROMPTPAD_DB         override db path
 `
 
 func main() {
@@ -57,6 +65,21 @@ func main() {
 		err = cmdReset(args)
 	case "path":
 		err = cmdPath(store)
+	case "doctor":
+		err = cmdDoctor(store)
+	case "_restore":
+		// Hidden: detached subprocess for clipboard restore.
+		delayMS, _ := strconv.Atoi(args[0])
+		raw, _ := io.ReadAll(os.Stdin)
+		parts := strings.SplitN(string(raw), "\x00", 2)
+		var clip, prim string
+		if len(parts) > 0 {
+			clip = parts[0]
+		}
+		if len(parts) > 1 {
+			prim = parts[1]
+		}
+		paste.RunRestore(delayMS, clip, prim)
 	case "help", "-h", "--help":
 		fmt.Print(help)
 	default:
@@ -282,6 +305,48 @@ func cmdReset(args []string) error {
 		return err
 	}
 	fmt.Println("reset all slots")
+	return nil
+}
+
+func cmdDoctor(s snippets.Store) error {
+	check := func(name string) string {
+		p, err := exec.LookPath(name)
+		if err != nil {
+			return "MISSING"
+		}
+		return p
+	}
+	fmt.Println("Binaries:")
+	fmt.Printf("  xdotool     : %s\n", check("xdotool"))
+	fmt.Printf("  xclip       : %s\n", check("xclip"))
+	fmt.Printf("  notify-send : %s\n", check("notify-send"))
+	fmt.Printf("  rofi        : %s\n", check("rofi"))
+	fmt.Printf("  dmenu       : %s\n", check("dmenu"))
+	fmt.Println()
+	fmt.Println("Env:")
+	fmt.Printf("  DISPLAY        = %s\n", os.Getenv("DISPLAY"))
+	fmt.Printf("  PROMPTPAD_KEY  = %s\n", paste.PasteKey())
+	fmt.Printf("  PROMPTPAD_SNIPPETS = %s\n", os.Getenv("PROMPTPAD_SNIPPETS"))
+	fmt.Println()
+	fmt.Println("Active window:")
+	for _, q := range [][]string{
+		{"getactivewindow", "getwindowname"},
+		{"getactivewindow", "getwindowclassname"},
+	} {
+		out, _ := exec.Command("xdotool", q...).Output()
+		fmt.Printf("  %-20s: %s", strings.Join(q, " "), out)
+	}
+	fmt.Println()
+	fmt.Println("Snippet dir:", s.Dir)
+	d, err := db.Open()
+	if err != nil {
+		fmt.Println("DB OPEN ERROR:", err)
+		return nil
+	}
+	defer d.Close()
+	fmt.Println("DB        :", d.Path())
+	fmt.Println()
+	fmt.Println("Hint: if paste doesn't land, try PROMPTPAD_KEY=ctrl+shift+v")
 	return nil
 }
 

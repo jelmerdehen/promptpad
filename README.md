@@ -8,12 +8,20 @@ SQLite so you can see which slots are dead weight and reclaim them.
 ## Build & install
 
 ```
-go build -trimpath -ldflags='-s -w' -o bin/promptpad ./cmd/promptpad
-ln -s /data/p/promptpad/bin/promptpad ~/.local/bin/promptpad
+make install
 ```
 
-Single static binary. Pure-Go SQLite (`modernc.org/sqlite`), no cgo.
-Runtime deps: `xdotool`, `xclip`, `notify-send` (X side, exec'd).
+Builds the binary (~6 MB static) and symlinks `~/.local/bin/promptpad →
+$(pwd)/bin/promptpad`. The symlink (not a copy) is load-bearing — the
+binary resolves `snippets/` via `EvalSymlinks(os.Executable())/../snippets`
+back to this repo's `snippets/` dir.
+
+Pure-Go SQLite (`modernc.org/sqlite`), no cgo. Runtime deps (exec'd):
+`xdotool`, `xclip`, `notify-send`, `rofi` (or `dmenu`).
+
+i3 bindings: add to your `~/.config/i3/config` (or run
+`scripts/install-i3-bindings.sh` for an idempotent append), then
+`i3-msg reload`.
 
 i3 binding (KP_* keysyms suppressed by Mod, so use bindcode):
 
@@ -44,7 +52,25 @@ promptpad title N "..."    # set/replace title in index.txt
 promptpad reset [N]        # zero counters (all, or one slot)
 promptpad path             # print snippet dir
 promptpad show N           # cat snippet N
+promptpad doctor           # check deps, active window, paste key
 ```
+
+## Troubleshooting
+
+If `use N` fires (db logs it) but nothing pastes, the focused app may
+not handle `shift+Insert`. Override:
+
+```
+PROMPTPAD_KEY=ctrl+shift+v promptpad use 0
+```
+
+Set per-binding in i3:
+
+```
+bindcode Mod4+90 exec --no-startup-id env PROMPTPAD_KEY=ctrl+shift+v /data/p/promptpad/bin/promptpad use 0
+```
+
+Run `promptpad doctor` to see active window + paste key + deps.
 
 ## Layout
 
