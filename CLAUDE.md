@@ -26,13 +26,23 @@ slots 0–9 each hold one snippet; KP_Decimal opens an interactive picker.
 | `snippets/index.txt` | `N: title` per line. Read by `list`/`stats`/`pick`. Sorted by slot. |
 | `bin/promptpad` | Built binary. Gitignored. |
 
-## Build
+## Build & install
 
 ```
-go build -trimpath -ldflags='-s -w' -o bin/promptpad ./cmd/promptpad
+make install
 ```
 
-Single static binary, ~6 MB. Module is in the parent `/data/p/go.work`.
+Targets: `build`, `install` (symlinks `~/.local/bin/promptpad` →
+`$(CURDIR)/bin/promptpad`), `uninstall`, `reinstall`, `doctor`,
+`clean`, `run ARGS=...`, `fmt`, `vet`, `test`. Build is single static
+binary, ~6 MB. Module is in the parent `/data/p/go.work`.
+
+**Symlink install is load-bearing.** `internal/snippets.DefaultDir`
+runs `EvalSymlinks(os.Executable())` then `<dir>/../snippets`. If install
+copied the binary into `~/.local/bin` instead, that resolves to
+`~/.local/snippets` and the CLI fails to find anything. Don't change to
+copy-install without also wiring an explicit snippet path (env, build
+tag, or wrapper script).
 
 Runtime deps (exec'd, not linked): `xdotool`, `xclip`, `notify-send`,
 `rofi` (or `dmenu` as fallback).
@@ -50,7 +60,17 @@ Runtime deps (exec'd, not linked): `xdotool`, `xclip`, `notify-send`,
 | `title N "..."` | Set/replace title in `index.txt`, keep file sorted |
 | `reset [N]` | Zero usage counters (all, or one slot) |
 | `path` | Print snippet dir and db path |
+| `doctor` | Print dep paths, DISPLAY, paste key, active window, db path. First stop when binding "doesn't work". |
+| `_restore <ms>` | **Hidden.** Reads `<clip>\x00<prim>` from stdin, sleeps, writes them back to both selections. Spawned detached by `use`. |
 | `help` | Help text |
+
+### Env
+
+| Var | Default | Purpose |
+|-----|---------|---------|
+| `PROMPTPAD_KEY` | `shift+Insert` | xdotool keysequence used by `use`. Try `ctrl+shift+v` if the focused app doesn't paste on shift+Insert. |
+| `PROMPTPAD_SNIPPETS` | `<exe>/../snippets` (via `EvalSymlinks`) | Override snippet dir. |
+| `PROMPTPAD_DB` | `${XDG_DATA_HOME:-~/.local/share}/promptpad/usage.db` | Override db path. |
 
 ## Storage
 
@@ -96,6 +116,22 @@ so we use **bindcode** not **bindsym**. Keycodes:
 
 Cheatsheet (`Mod+Shift+/`) reads `snippets/index.txt` and rewrites
 `promptpad use N` → `paste #N: <title>` in `/.../linux/ui/c/i3-cheatsheet.sh`.
+
+## Clipboard restore: why a detached subprocess
+
+After `use` writes the snippet to clipboard + primary, it must restore
+the user's prior selections so their copy buffer isn't permanently
+clobbered. Naïve `go func() { time.Sleep(1s); xclip(restore) }()`
+**dies** when `main` returns — the goroutine never wakes.
+
+Fix: `scheduleRestore` in `internal/paste/paste.go` spawns the binary as
+a detached subprocess (`Setsid: true`) with the hidden `_restore <ms>`
+subcommand, piping `<clip>\x00<prim>` to its stdin. That subprocess
+sleeps then restores, surviving `use`'s exit. Single-binary, no
+external shell call required.
+
+If you change the restore protocol, update both `scheduleRestore`
+(producer) and `cmd/promptpad/main.go`'s `_restore` case (consumer).
 
 ## Mod-state bug — why `keyup Super_L Super_R` is needed
 
@@ -153,6 +189,30 @@ still "held" once rofi closes.
   the lux desktop moves off Xorg.
 - Cross-host snippet sync. Snippets are in this git repo; sync via git.
   DB is per-host telemetry by design — don't push `usage.db`.
+
+## Debugging "binding doesn't work"
+
+Decision tree:
+
+1. **Run `promptpad doctor`** — confirms deps present and shows active
+   window class. If active window is what you expect, deps are fine,
+   skip to step 3.
+2. **Check db log**: `sqlite3 ~/.local/share/promptpad/usage.db "SELECT
+   * FROM uses ORDER BY id DESC LIMIT 5"`. If your KP_N press logged a
+   row, the i3 binding fired and `use N` ran to completion — meaning
+   xdotool returned exit 0. Problem is paste **delivery**, not firing.
+3. **Paste key mismatch**: focused app may not paste on `shift+Insert`.
+   Modern terminals (Alacritty, Kitty, Foot, WezTerm) vary. Test with
+   `PROMPTPAD_KEY=ctrl+shift+v promptpad use 0` while focused on the
+   same app. If that lands, rebind in i3 by wrapping with `env`.
+4. **No db row but key was pressed**: i3 didn't fire. Check
+   `i3-msg -t get_config | grep promptpad` shows the bindcode lines.
+   `i3-msg reload` if you edited config. Verify keycode with
+   `xev | grep keycode` while pressing the numpad key.
+5. **Wrong focus at press time**: the snippet content lands in
+   clipboard + primary regardless of focus. Click the target window,
+   then `shift+Insert` manually. If that works, the issue is purely
+   "focus moved between press and paste delivery."
 
 ## See also
 
