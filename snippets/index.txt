@@ -1,4 +1,4 @@
-0: Plan review (steelman/attack/tradeoffs/revise)
+0: Plan refine + implement
 1: Plan refine (investigate hard)
 2: Prompt refine
 3: /loop bugfix + commit/push
